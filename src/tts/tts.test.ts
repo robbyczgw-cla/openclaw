@@ -557,5 +557,47 @@ describe("tts", () => {
       globalThis.fetch = originalFetch;
       process.env.OPENCLAW_TTS_PREFS = prevPrefs;
     });
+
+    it("uses configured ElevenLabs voiceId for [[tts]] blocks", async () => {
+      const prevPrefs = process.env.OPENCLAW_TTS_PREFS;
+      process.env.OPENCLAW_TTS_PREFS = `/tmp/tts-test-${Date.now()}.json`;
+      const originalFetch = globalThis.fetch;
+      const fetchMock = vi.fn(async () => ({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(1),
+      }));
+      globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+      const cfg = {
+        ...baseCfg,
+        messages: {
+          ...baseCfg.messages,
+          tts: {
+            ...baseCfg.messages.tts,
+            auto: "tagged",
+            provider: "elevenlabs",
+            elevenlabs: {
+              ...baseCfg.messages.tts?.elevenlabs,
+              apiKey: "test-elevenlabs-key",
+              voiceId: "aviXFY7Zd7b9DnCUwaCh",
+            },
+          },
+        },
+      };
+
+      const result = await maybeApplyTtsToPayload({
+        payload: { text: "[[tts]]Hola desde OpenClaw[[/tts]]" },
+        cfg,
+        kind: "final",
+      });
+
+      expect(result.mediaUrl).toBeDefined();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [requestUrl] = fetchMock.mock.calls[0] as [string, RequestInit?];
+      expect(requestUrl).toContain("/v1/text-to-speech/aviXFY7Zd7b9DnCUwaCh");
+
+      globalThis.fetch = originalFetch;
+      process.env.OPENCLAW_TTS_PREFS = prevPrefs;
+    });
   });
 });

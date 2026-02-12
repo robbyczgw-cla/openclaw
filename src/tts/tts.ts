@@ -603,8 +603,17 @@ function parseTtsDirectives(
   let cleanedText = text;
   let hasDirective = false;
 
-  const blockRegex = /\[\[tts:text\]\]([\s\S]*?)\[\[\/tts:text\]\]/gi;
-  cleanedText = cleanedText.replace(blockRegex, (_match, inner: string) => {
+  const textBlockRegex = /\[\[tts:text\]\]([\s\S]*?)\[\[\/tts:text\]\]/gi;
+  cleanedText = cleanedText.replace(textBlockRegex, (_match, inner: string) => {
+    hasDirective = true;
+    if (policy.allowText && overrides.ttsText == null) {
+      overrides.ttsText = inner.trim();
+    }
+    return "";
+  });
+
+  const genericBlockRegex = /\[\[tts\]\]([\s\S]*?)\[\[\/tts\]\]/gi;
+  cleanedText = cleanedText.replace(genericBlockRegex, (_match, inner: string) => {
     hasDirective = true;
     if (policy.allowText && overrides.ttsText == null) {
       overrides.ttsText = inner.trim();
