@@ -53,7 +53,38 @@ export function resolveSessionFilePathOptions(params: {
   return undefined;
 }
 
-export const SAFE_SESSION_ID_RE = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
+export const SAFE_SESSION_ID_RE = /^[a-z0-9][a-z0-9._:+-]{0,127}$/i;
+
+const SAFE_FILE_ID_BYTE_RE = /^[a-z0-9_-]$/i;
+
+export function dotQuote(value: string): string {
+  const bytes = Buffer.from(value, "utf8");
+  let encoded = "";
+  for (const byte of bytes) {
+    const char = String.fromCharCode(byte);
+    if (SAFE_FILE_ID_BYTE_RE.test(char)) {
+      encoded += char;
+    } else {
+      encoded += `.${byte.toString(16).toUpperCase().padStart(2, "0")}`;
+    }
+  }
+  return encoded;
+}
+
+export function dotUnquote(value: string): string {
+  const bytes: number[] = [];
+  for (let i = 0; i < value.length; i += 1) {
+    const char = value[i];
+    const next = value.slice(i + 1, i + 3);
+    if (char === "." && /^[0-9A-Fa-f]{2}$/.test(next)) {
+      bytes.push(Number.parseInt(next, 16));
+      i += 2;
+      continue;
+    }
+    bytes.push(char.charCodeAt(0));
+  }
+  return Buffer.from(bytes).toString("utf8");
+}
 
 export function validateSessionId(sessionId: string): string {
   const trimmed = sessionId.trim();
@@ -93,16 +124,17 @@ export function resolveSessionTranscriptPathInDir(
   topicId?: string | number,
 ): string {
   const safeSessionId = validateSessionId(sessionId);
+  const safeSessionFileId = dotQuote(safeSessionId);
   const safeTopicId =
     typeof topicId === "string"
-      ? encodeURIComponent(topicId)
+      ? dotQuote(topicId)
       : typeof topicId === "number"
         ? String(topicId)
         : undefined;
   const fileName =
     safeTopicId !== undefined
-      ? `${safeSessionId}-topic-${safeTopicId}.jsonl`
-      : `${safeSessionId}.jsonl`;
+      ? `${safeSessionFileId}-topic-${safeTopicId}.jsonl`
+      : `${safeSessionFileId}.jsonl`;
   return resolvePathWithinSessionsDir(sessionsDir, fileName);
 }
 

@@ -1,6 +1,8 @@
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  dotQuote,
+  dotUnquote,
   resolveSessionFilePath,
   resolveSessionFilePathOptions,
   resolveSessionTranscriptPath,
@@ -32,6 +34,9 @@ describe("session path safety", () => {
   it("validates safe session IDs", () => {
     expect(validateSessionId("sess-1")).toBe("sess-1");
     expect(validateSessionId("ABC_123.hello")).toBe("ABC_123.hello");
+    expect(validateSessionId("agent:wa-relay:whatsapp:+15551234567")).toBe(
+      "agent:wa-relay:whatsapp:+15551234567",
+    );
   });
 
   it("rejects unsafe session IDs", () => {
@@ -45,7 +50,19 @@ describe("session path safety", () => {
     const sessionsDir = "/tmp/openclaw/agents/main/sessions";
     const resolved = resolveSessionTranscriptPathInDir("sess-1", sessionsDir, "topic/a+b");
 
-    expect(resolved).toBe(path.resolve(sessionsDir, "sess-1-topic-topic%2Fa%2Bb.jsonl"));
+    expect(resolved).toBe(path.resolve(sessionsDir, "sess-1-topic-topic.2Fa.2Bb.jsonl"));
+  });
+
+  it("dot-quotes session IDs with routing separators and phone prefixes", () => {
+    const sessionsDir = "/tmp/openclaw/agents/main/sessions";
+    const resolved = resolveSessionTranscriptPathInDir(
+      "agent:wa-relay:whatsapp:+15551234567",
+      sessionsDir,
+    );
+
+    expect(resolved).toBe(
+      path.resolve(sessionsDir, "agent.3Awa-relay.3Awhatsapp.3A.2B15551234567.jsonl"),
+    );
   });
 
   it("rejects unsafe sessionFile candidates that escape the sessions dir", () => {
@@ -106,6 +123,14 @@ describe("session path safety", () => {
         { sessionsDir },
       ),
     ).toThrow(/within sessions directory/);
+  });
+
+  it("round-trips dot-quoting for special characters", () => {
+    const source = "agent:wa-relay:whatsapp:+15551234567@chat.example";
+    const encoded = dotQuote(source);
+
+    expect(encoded).toBe("agent.3Awa-relay.3Awhatsapp.3A.2B15551234567.40chat.2Eexample");
+    expect(dotUnquote(encoded)).toBe(source);
   });
 
   it("uses agent sessions dir fallback for transcript path", () => {
