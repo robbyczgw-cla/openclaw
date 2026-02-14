@@ -226,6 +226,15 @@ export class AgentComponentButton extends Button {
       return;
     }
 
+    // Defer immediately to satisfy Discord's 3-second interaction ACK requirement.
+    // We use an ephemeral deferred reply so subsequent interaction.reply() calls
+    // can safely edit the original deferred response.
+    try {
+      await interaction.defer({ ephemeral: true });
+    } catch (err) {
+      logError(`agent button: failed to defer interaction: ${String(err)}`);
+    }
+
     const username = formatUsername(user);
     const userId = user.id;
 
@@ -395,6 +404,15 @@ export class AgentSelectMenu extends StringSelectMenu {
     if (!user) {
       logError("agent select: missing user in interaction");
       return;
+    }
+
+    // Defer immediately to satisfy Discord's 3-second interaction ACK requirement.
+    // We use an ephemeral deferred reply so subsequent interaction.reply() calls
+    // can safely edit the original deferred response.
+    try {
+      await interaction.defer({ ephemeral: true });
+    } catch (err) {
+      logError(`agent select: failed to defer interaction: ${String(err)}`);
     }
 
     const username = formatUsername(user);
