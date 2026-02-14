@@ -215,8 +215,6 @@ export async function ensureAgentWorkspace(params?: {
   const identityTemplate = await loadTemplate(DEFAULT_IDENTITY_FILENAME);
   const userTemplate = await loadTemplate(DEFAULT_USER_FILENAME);
   const heartbeatTemplate = await loadTemplate(DEFAULT_HEARTBEAT_FILENAME);
-  const bootstrapTemplate = await loadTemplate(DEFAULT_BOOTSTRAP_FILENAME);
-
   const wroteAgents = await writeFileIfMissing(agentsPath, agentsTemplate);
   const wroteSoul = await writeFileIfMissing(soulPath, soulTemplate);
   const wroteTools = await writeFileIfMissing(toolsPath, toolsTemplate);
@@ -226,6 +224,7 @@ export async function ensureAgentWorkspace(params?: {
   const wroteAnyCoreBootstrapFile =
     wroteAgents || wroteSoul || wroteTools || wroteIdentity || wroteUser || wroteHeartbeat;
   if (isBrandNewWorkspace || wroteAnyCoreBootstrapFile) {
+    const bootstrapTemplate = await loadTemplate(DEFAULT_BOOTSTRAP_FILENAME);
     await writeFileIfMissing(bootstrapPath, bootstrapTemplate);
   }
   await ensureGitRepo(dir, isBrandNewWorkspace);
