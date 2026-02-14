@@ -73,15 +73,32 @@ function resolveSessionsDir(opts?: SessionFilePathOptions): string {
 }
 
 function resolvePathFromAgentSessionsDir(
-  agentId: string,
+  agentSessionsDir: string,
   candidateAbsPath: string,
 ): string | undefined {
-  const agentBase = path.resolve(resolveAgentSessionsDir(agentId));
+  const agentBase = path.resolve(agentSessionsDir);
   const relative = path.relative(agentBase, candidateAbsPath);
   if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
     return undefined;
   }
   return path.resolve(agentBase, relative);
+}
+
+function resolveSiblingAgentSessionsDir(
+  baseSessionsDir: string,
+  agentId: string,
+): string | undefined {
+  const resolvedBase = path.resolve(baseSessionsDir);
+  if (path.basename(resolvedBase) !== "sessions") {
+    return undefined;
+  }
+  const baseAgentDir = path.dirname(resolvedBase);
+  const baseAgentsDir = path.dirname(baseAgentDir);
+  if (path.basename(baseAgentsDir) !== "agents") {
+    return undefined;
+  }
+  const rootDir = path.dirname(baseAgentsDir);
+  return path.join(rootDir, "agents", normalizeAgentId(agentId), "sessions");
 }
 
 function extractAgentIdFromAbsoluteSessionPath(candidateAbsPath: string): string | undefined {
@@ -110,16 +127,28 @@ function resolvePathWithinSessionsDir(
   // convert them to relative so the containment check passes.
   const normalized = path.isAbsolute(trimmed) ? path.relative(resolvedBase, trimmed) : trimmed;
   if (normalized.startsWith("..") && path.isAbsolute(trimmed)) {
+    const tryAgentFallback = (agentId: string): string | undefined => {
+      const normalizedAgentId = normalizeAgentId(agentId);
+      const siblingSessionsDir = resolveSiblingAgentSessionsDir(resolvedBase, normalizedAgentId);
+      if (siblingSessionsDir) {
+        const siblingResolved = resolvePathFromAgentSessionsDir(siblingSessionsDir, trimmed);
+        if (siblingResolved) {
+          return siblingResolved;
+        }
+      }
+      return resolvePathFromAgentSessionsDir(resolveAgentSessionsDir(normalizedAgentId), trimmed);
+    };
+
     const explicitAgentId = opts?.agentId?.trim();
     if (explicitAgentId) {
-      const resolvedFromAgent = resolvePathFromAgentSessionsDir(explicitAgentId, trimmed);
+      const resolvedFromAgent = tryAgentFallback(explicitAgentId);
       if (resolvedFromAgent) {
         return resolvedFromAgent;
       }
     }
     const extractedAgentId = extractAgentIdFromAbsoluteSessionPath(trimmed);
-    if (extractedAgentId && extractedAgentId !== explicitAgentId) {
-      const resolvedFromPath = resolvePathFromAgentSessionsDir(extractedAgentId, trimmed);
+    if (extractedAgentId) {
+      const resolvedFromPath = tryAgentFallback(extractedAgentId);
       if (resolvedFromPath) {
         return resolvedFromPath;
       }
