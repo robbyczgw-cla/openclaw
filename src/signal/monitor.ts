@@ -152,6 +152,8 @@ async function waitForSignalDaemonReady(params: {
   });
 }
 
+const ATTACHMENT_TIMEOUT_MS = 30_000;
+
 async function fetchAttachment(params: {
   baseUrl: string;
   account?: string;
@@ -185,6 +187,7 @@ async function fetchAttachment(params: {
 
   const result = await signalRpcRequest<{ data?: string }>("getAttachment", rpcParams, {
     baseUrl: params.baseUrl,
+    timeoutMs: ATTACHMENT_TIMEOUT_MS,
   });
   if (!result?.data) {
     return null;
