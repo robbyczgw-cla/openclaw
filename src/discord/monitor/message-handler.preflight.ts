@@ -204,6 +204,14 @@ export async function preflightDiscordMessage(
   const messageText = resolveDiscordMessageText(message, {
     includeForwarded: true,
   });
+
+  // Intercept text-only slash commands in guild/group contexts (e.g. user typing "/reset"
+  // instead of using Discord's slash command picker). In DMs, keep text commands enabled.
+  if (!isDirectMessage && baseText && hasControlCommand(baseText, params.cfg)) {
+    logVerbose(`discord: drop text-based slash command ${message.id} (intercepted at gateway)`);
+    return null;
+  }
+
   recordChannelActivity({
     channel: "discord",
     accountId: params.accountId,
