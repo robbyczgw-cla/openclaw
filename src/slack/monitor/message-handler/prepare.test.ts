@@ -120,6 +120,9 @@ describe("slack prepareSlackMessage inbound contract", () => {
       botTokenSource: "config",
       appTokenSource: "config",
       config,
+      replyToMode: config.replyToMode,
+      replyToModeByChatType: config.replyToModeByChatType,
+      dm: config.dm,
     };
   }
 
@@ -470,6 +473,30 @@ describe("slack prepareSlackMessage inbound contract", () => {
     );
 
     expect(prepared).toBeTruthy();
+    expect(prepared!.ctxPayload.MessageThreadId).toBe("1.000");
+  });
+
+  it("honors replyToModeByChatType for direct messages", async () => {
+    const slackCtx = createInboundSlackCtx({
+      cfg: {
+        channels: { slack: { enabled: true, replyToMode: "off" } },
+      } as OpenClawConfig,
+      replyToMode: "off",
+    });
+    // oxlint-disable-next-line typescript/no-explicit-any
+    slackCtx.resolveUserName = async () => ({ name: "Alice" }) as any;
+
+    const prepared = await prepareMessageWith(
+      slackCtx,
+      createSlackAccount({
+        replyToMode: "off",
+        replyToModeByChatType: { direct: "all" },
+      }),
+      createSlackMessage({ channel: "D123", channel_type: "im" }),
+    );
+
+    expect(prepared).toBeTruthy();
+    expect(prepared!.replyToMode).toBe("all");
     expect(prepared!.ctxPayload.MessageThreadId).toBe("1.000");
   });
 

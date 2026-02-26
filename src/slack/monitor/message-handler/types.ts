@@ -17,6 +17,7 @@ export type PreparedSlackMessage = {
   isRoomish: boolean;
   historyKey: string;
   preview: string;
+  replyToMode: "off" | "first" | "all";
   ackReactionMessageTs?: string;
   ackReactionValue: string;
   ackReactionPromise: Promise<boolean> | null;

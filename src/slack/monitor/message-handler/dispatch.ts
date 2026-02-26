@@ -68,6 +68,7 @@ function shouldUseStreaming(params: {
 export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessage) {
   const { ctx, account, message, route } = prepared;
   const cfg = ctx.cfg;
+  const replyToMode = prepared.replyToMode;
   const runtime = ctx.runtime;
 
   if (prepared.isDirectMessage) {
@@ -90,7 +91,7 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
 
   const { statusThreadTs, isThreadReply } = resolveSlackThreadTargets({
     message,
-    replyToMode: ctx.replyToMode,
+    replyToMode,
   });
 
   const messageTs = message.ts ?? message.event_ts;
@@ -101,7 +102,7 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
   // mark this to ensure only the first reply is threaded.
   const hasRepliedRef = { value: false };
   const replyPlan = createSlackReplyDeliveryPlan({
-    replyToMode: ctx.replyToMode,
+    replyToMode,
     incomingThreadTs,
     messageTs,
     hasRepliedRef,
@@ -167,7 +168,7 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
     nativeStreaming: slackStreaming.nativeStreaming,
   });
   const streamThreadHint = resolveSlackStreamingThreadHint({
-    replyToMode: ctx.replyToMode,
+    replyToMode,
     incomingThreadTs,
     messageTs,
     isThreadReply,
@@ -189,7 +190,7 @@ export async function dispatchPreparedSlackMessage(prepared: PreparedSlackMessag
       runtime,
       textLimit: ctx.textLimit,
       replyThreadTs,
-      replyToMode: ctx.replyToMode,
+      replyToMode,
     });
     replyPlan.markSent();
   };
