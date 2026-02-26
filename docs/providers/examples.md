@@ -24,6 +24,7 @@ Quick reference for common provider configurations. Copy, paste, and customize.
 ```
 
 Or use OAuth (setup-token):
+
 ```bash
 openclaw models auth login --provider anthropic --set-default
 ```
